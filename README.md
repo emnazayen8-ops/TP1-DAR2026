@@ -114,7 +114,6 @@ Lien du repository : *(https://github.com/emnazayen8-ops/TP1-DAR2026)*
 
 ### Étape 2 : Création du service de multiplication
 
-Les classes `DataInputStream` et `DataOutputStream` sont utilisées à la place des flux bruts. Les flux bruts n'envoient qu'un seul octet par `write(int)`, ce qui déforme les entiers négatifs ou supérieurs à 255. `writeInt()` envoie 4 octets et `readInt()` reconstruit exactement l'entier d'origine.
 
 **Serveur :**
 
@@ -128,7 +127,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Server {
+public class Server1_2 {
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(1234)) {
             System.out.println("Serveur en attente d'un client...");
@@ -140,17 +139,18 @@ public class Server {
 
             int x;
             do {
-                x = in.readInt();
-                int resultat = x * 5;
-                out.writeInt(resultat);
-                out.flush();
+                x = in.readInt();               // (c) réception (bloquant)
+                int resultat = x * 5;           // (d) calcul côté serveur
+                out.writeInt(resultat);         // (e) envoi du résultat
+                out.flush();                    // force l'envoi immédiat
                 System.out.println("Reçu : " + x + " -> envoyé : " + resultat);
-            } while (x != 0);
+            } while (x != 0);                   // 0 = fin de session
 
             System.out.println("Fin de session, fermeture.");
             in.close();
             out.close();
             socket.close();
+
         } catch (EOFException e) {
             System.out.println("Le client s'est déconnecté brutalement.");
         } catch (IOException e) {
@@ -171,7 +171,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.Scanner;
 
-public class Client {
+public class Client1_2 {
     public static void main(String[] args) {
         try (Socket socket = new Socket("localhost", 1234);
              Scanner sc = new Scanner(System.in)) {
@@ -183,37 +183,39 @@ public class Client {
             int x;
             do {
                 System.out.print("Entrez un entier (0 pour quitter) : ");
-                x = sc.nextInt();
-                out.writeInt(x);
+                x = sc.nextInt();               // (a) saisie clavier
+                out.writeInt(x);                // (b) envoi au serveur
                 out.flush();
-                int resultat = in.readInt();
+                int resultat = in.readInt();    // (f) réception du résultat
                 System.out.println(x + " x 5 = " + resultat);
             } while (x != 0);
 
             System.out.println("Fermeture de la connexion.");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 }
 ```
+**Description :** DataOutputStream et DataInputStream jouent le rôle de traducteurs : l’un transforme un nombre en octets pour l’envoyer, l’autre reçoit ces octets et reconstruit le nombre d’origine. Ainsi, le client et le serveur se comprennent, même avec des nombres négatifs.
 
 ### Tests avec différentes valeurs
 
-| Valeur de x | Résultat attendu | Capture |
-|---|---|---|
-| Positive (ex : 7) | 35 | ![x positif](images/1-2-positif.png) |
+| Valeur de x        | Résultat attendu | Capture |
+|--------------------|---|---|
+| Positive (ex : 7)  | 35 | ![x positif](images/1-2-positif.png) |
 | Négative (ex : -4) | -20 | ![x négatif](images/1-2-negatif.png) |
-| Zéro | 0 (fin de session) | ![x zéro](images/1-2-zero.png) |
+| Zéro               | 0 (fin de session) | ![x zéro](images/1-2-zero.png) |
 
-**Interprétation :** *(Le serveur calcule correctement x * 5 pour les valeurs positives et négatives grâce à `writeInt`/`readInt`. La valeur 0 sert de sentinelle : le client l'envoie, le serveur répond 0 puis les deux ferment leurs sockets. Limite : au-delà d'environ 429 millions, x * 5 dépasse la capacité d'un `int` et provoque un débordement d'entier.)*
+**Description :** *(Le serveur calcule correctement x * 5 pour les valeurs positives et négatives grâce à `writeInt`/`readInt`. La valeur 0 sert de sentinelle : le client l'envoie, le serveur répond 0 puis les deux ferment leurs sockets.)*
 
 ### Saisie de plusieurs entiers successivement
 
 ![Plusieurs saisies côté client](images/1-2-boucle-client.png)
 ![Plusieurs échanges côté serveur](images/1-2-boucle-serveur.png)
 
-**Interprétation :** le client saisit des entiers successivement, envoie chacun au serveur, reçoit le produit et l'affiche. La boucle continue tant que l'entier saisi est différent de 0. Quand 0 est saisi, la communication s'arrête proprement et les sockets sont fermés des deux côtés.
+**Description :** le client saisit des entiers successivement, envoie chacun au serveur, reçoit le produit et l'affiche. La boucle continue tant que l'entier saisi est différent de 0. Quand 0 est saisi, la communication s'arrête proprement et les sockets sont fermés des deux côtés.
 
 ### Étape 3 : Dépôt des livrables
 
